@@ -1,49 +1,43 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const ethers = require('ethers');
-require('dotenv').config();
+import express from "express";
+import dotenv from "dotenv";
+import { Wallet, hashMessage } from "ethers";
+
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-// Load private key from environment variable
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
+
 if (!PRIVATE_KEY) {
-  throw new Error('PRIVATE_KEY environment variable is not set');
+  console.error("❌ PRIVATE_KEY not found in .env");
+  process.exit(1);
 }
 
-const wallet = new ethers.Wallet(PRIVATE_KEY);
+const wallet = new Wallet(PRIVATE_KEY);
 
-app.post('/sign', async (req, res) => {
+// Main signing endpoint
+app.post("/sign", async (req, res) => {
   try {
-    const payload = req.body.payload;
+    const { payload } = req.body;
 
     if (!payload) {
-      return res.status(400).json({ error: 'Missing payload' });
+      return res.status(400).json({ error: "Missing payload" });
     }
 
-    const payloadString = JSON.stringify(payload);
-    const message = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(payloadString));
-    const signature = await wallet.signMessage(ethers.utils.arrayify(message));
+    const json = JSON.stringify(payload);
+    const hash = hashMessage(json);
+    const signature = await wallet.signMessage(json);
 
-    res.json({
-      address: wallet.address,
-      signature: signature
-    });
-  } catch (error) {
-    console.error('Signing error:', error);
-    res.status(500).json({ error: 'Signing failed' });
+    return res.json({ hash, signature });
+  } catch (err) {
+    console.error("Signing failed:", err.message);
+    return res.status(500).json({ error: "Signing failed" });
   }
 });
 
-app.get('/', (req, res) => {
-  res.send('Lighter Signer is running');
-});
-
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`✅ Server running at http://localhost:${port}`);
 });

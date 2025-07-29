@@ -16,7 +16,12 @@ app.post('/sign', async (req, res) => {
 
     const payload = req.body.payload;
 
-    const signature = await wallet.signMessage(payload);
+    const ethers = require('ethers');
+const hash = ethers.utils.keccak256(
+  ethers.utils.toUtf8Bytes(JSON.stringify(payload))
+);
+const signature = await wallet.signMessage(ethers.utils.arrayify(hash));
+
 
     res.json({
       address: walletAddress,

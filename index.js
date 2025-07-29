@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { utils, Wallet } = require('ethers');
+const ethers = require('ethers');
 require('dotenv').config();
 
 const app = express();
@@ -16,7 +16,7 @@ if (!PRIVATE_KEY) {
   throw new Error('PRIVATE_KEY environment variable is not set');
 }
 
-const wallet = new Wallet(PRIVATE_KEY);
+const wallet = new ethers.Wallet(PRIVATE_KEY);
 
 app.post('/sign', async (req, res) => {
   try {
@@ -26,11 +26,9 @@ app.post('/sign', async (req, res) => {
       return res.status(400).json({ error: 'Missing payload' });
     }
 
-    const message = utils.keccak256(
-      utils.toUtf8Bytes(JSON.stringify(payload))
-    );
-
-    const signature = await wallet.signMessage(utils.arrayify(message));
+    const payloadString = JSON.stringify(payload);
+    const message = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(payloadString));
+    const signature = await wallet.signMessage(ethers.utils.arrayify(message));
 
     res.json({
       address: wallet.address,
@@ -49,4 +47,3 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
-

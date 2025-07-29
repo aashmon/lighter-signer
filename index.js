@@ -1,38 +1,52 @@
-const { Wallet } = require('ethers');
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors');
+const { utils, Wallet } = require('ethers');
 require('dotenv').config();
 
 const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(cors());
 app.use(bodyParser.json());
 
-// Replace with your wallet address
-const walletAddress = "0x36f65fc7546073B026BCB7f279bB20fAE8CD6A38";
+// Load private key from environment variable
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+if (!PRIVATE_KEY) {
+  throw new Error('PRIVATE_KEY environment variable is not set');
+}
+
+const wallet = new Wallet(PRIVATE_KEY);
 
 app.post('/sign', async (req, res) => {
   try {
-    const privateKey = process.env.PRIVATE_KEY;
-    const wallet = new Wallet(privateKey);
-
     const payload = req.body.payload;
 
-    const { ethers } = require('ethers');
-const hash = ethers.utils.keccak256(
-  ethers.utils.toUtf8Bytes(JSON.stringify(payload))
-);
-const signature = await wallet.signMessage(ethers.utils.arrayify(hash));
+    if (!payload) {
+      return res.status(400).json({ error: 'Missing payload' });
+    }
 
+    const message = utils.keccak256(
+      utils.toUtf8Bytes(JSON.stringify(payload))
+    );
+
+    const signature = await wallet.signMessage(utils.arrayify(message));
 
     res.json({
-      address: walletAddress,
-      signature,
+      address: wallet.address,
+      signature: signature
     });
-  } catch (err) {
-    console.error('Error:', err.message);
-    res.status(500).send('Signing failed');
+  } catch (error) {
+    console.error('Signing error:', error);
+    res.status(500).json({ error: 'Signing failed' });
   }
 });
 
-app.listen(3000, () => {
-  console.log('Signer live on port 3000');
+app.get('/', (req, res) => {
+  res.send('Lighter Signer is running');
 });
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+

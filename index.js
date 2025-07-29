@@ -16,7 +16,7 @@ app.post('/sign', async (req, res) => {
 
     const payload = req.body.payload;
 
-    const ethers = require('ethers');
+    const { ethers } = require('ethers');
 const hash = ethers.utils.keccak256(
   ethers.utils.toUtf8Bytes(JSON.stringify(payload))
 );
